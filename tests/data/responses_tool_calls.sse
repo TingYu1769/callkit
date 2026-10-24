@@ -1,0 +1,165 @@
+event: response.created
+data: {"type":"response.created","response":{"id":"resp_0259784c6a47d43b016adb70e9f9fc81939653f3f623f71fc5","object":"response","created_at":1792766186,"status":"in_progress","access_programs":null,"background":false,"completed_at":null,"content_filters":null,"error":null,"frequency_penalty":0.0,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"max_tool_calls":null,"model":"gpt-5.6-sol","moderation":null,"output":[],"parallel_tool_calls":true,"presence_penalty":0.0,"previous_response_id":null,"prompt_cache_key":null,"prompt_cache_retention":"24h","reasoning":{"context":"all_turns","effort":"medium","mode":"standard","summary":null},"safety_identifier":null,"service_tier":"auto","store":false,"temperature":1.0,"text":{"format":{"type":"text"},"verbosity":"medium"},"tool_choice":"auto","tool_usage":{"image_gen":{"input_tokens":0,"input_tokens_details":{"image_tokens":0,"text_tokens":0},"output_tokens":0,"output_tokens_details":{"image_tokens":0,"text_tokens":0},"total_tokens":0},"web_search":{"num_requests":0}},"tools":[{"type":"function","description":"查询某个城市某一天的天气","name":"get_weather","output_schema":null,"parameters":{"type":"object","properties":{"city":{"type":"string"},"date":{"type":"string"}},"required":["city","date"],"additionalProperties":false},"strict":true}],"top_logprobs":0,"top_p":0.98,"truncation":"disabled","usage":null,"user":null,"metadata":{}},"sequence_number":0}
+
+event: response.in_progress
+data: {"type":"response.in_progress","response":{"id":"resp_0259784c6a47d43b016adb70e9f9fc81939653f3f623f71fc5","object":"response","created_at":1792766186,"status":"in_progress","access_programs":null,"background":false,"completed_at":null,"content_filters":null,"error":null,"frequency_penalty":0.0,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"max_tool_calls":null,"model":"gpt-5.6-sol","moderation":null,"output":[],"parallel_tool_calls":true,"presence_penalty":0.0,"previous_response_id":null,"prompt_cache_key":null,"prompt_cache_retention":"24h","reasoning":{"context":"all_turns","effort":"medium","mode":"standard","summary":null},"safety_identifier":null,"service_tier":"auto","store":false,"temperature":1.0,"text":{"format":{"type":"text"},"verbosity":"medium"},"tool_choice":"auto","tool_usage":{"image_gen":{"input_tokens":0,"input_tokens_details":{"image_tokens":0,"text_tokens":0},"output_tokens":0,"output_tokens_details":{"image_tokens":0,"text_tokens":0},"total_tokens":0},"web_search":{"num_requests":0}},"tools":[{"type":"function","description":"查询某个城市某一天的天气","name":"get_weather","output_schema":null,"parameters":{"type":"object","properties":{"city":{"type":"string"},"date":{"type":"string"}},"required":["city","date"],"additionalProperties":false},"strict":true}],"top_logprobs":0,"top_p":0.98,"truncation":"disabled","usage":null,"user":null,"metadata":{}},"sequence_number":1}
+
+event: response.output_item.added
+data: {"type":"response.output_item.added","item":{"id":"rs_0259784c6a47d43b016adb70ea918c8193b0585ce30cae7b6a","type":"reasoning","content":[],"encrypted_content":"ZRgUYJsVfB7jU3loW9J27jlu3iCPavucJ0pT7xtHddDOVCkxVr4zf6q4LKFu0LCHVoLy4OrWp42zqO0YU79hHNBRJ1GgRLAtnZNMYdmwDm19YZdQQ8C8X7lXqUiy2iRFZOfMiSZa2IqtQciiqxP/SV677fHf/hR3337ghdxLlBswlgzE5yuZrAc2Wo04Ux5OEyak1zr/Uho4yabVwBw2oykszy0dVfwLCRf5EjMa5S5QnpygoL+6iEROBbdQOw2ncFfQhlUlNIDVDHHxEPYD/6h/j6vYrxwy4qfsVAxpOkB4beabBWNIAo9Q7PqzIQi9LbRTuZ/NhQPKScX6BoR7tNh2P2i3/D60NwgN1tssnC9qaLNoZSfZ39L+35ZrkQiiYpLsaJ4CPhG/xxcvlwENKj9ARm8M1MydynAqFiOoyF117mi9zBa7iae6HdHm/pq03l+xQLm2urAt5AQa+U5LfM+EdPrJTWFOV2mDSb2bm6mTqwCi3wHkuytXUCKEbtKtaCl9a0X+9X9XUrfdAILhu1Iz4E3vIyD1dDZeGCpU84ZgR9mKfTOsAO+Apdye90ozs0BV3iauYIwXaLhaepbRKHJAPpgZSk/Rs9Al08KTzNNvUQcNUqft6lkvhdDWR7rdRY26U0aEOM6srG2G1sfXz9c6HM/Vh7TKF0V8PA2wReVMoC+VoZxHoTEot+MN7ef0CpGrMCrM6dt+FSd/MZf92WzMEI/XZ/9041o8stzxIyOI0v99SUxQFbupkDzgTDZbw3qhFYnxW+qaXhQmBrVG7zVdSZ3fX5aKgQ9xXzhEf2g3w4BpdDSRGqbpWUDvN+JNDPX6txw8Bar41iqFpNKW5/A0/p1XZ8fat0Qb9aX+hzkDnRnoeAk9LZd0JUeFH5vdKM5ZNpiaDrdB11q0MKdWG6R1WnZUQLvw6r3Vyo98Jv7hd3vp3McCGDV4MVjxiu8qaYoJ06nve2XxeBvlM0CJ0zbIG7WXUoV4Q+3jsna0Au+XGLFwn0N2P9YxaLqbZq5ZjfcSOojV198YGiM09UasRkweEcSpYcBGbuwmn0br9Eh6tDos5R3WEE4RO4Wo1Jw7XxSO81RU7PvA9Z8NPyIl9kR53Slgq+1VtfGqXJ8eJ89kQg7YDxAhT2s=","summary":[]},"output_index":0,"sequence_number":2}
+
+event: response.output_item.done
+data: {"type":"response.output_item.done","item":{"id":"rs_0259784c6a47d43b016adb70ea918c8193b0585ce30cae7b6a","type":"reasoning","content":[],"encrypted_content":"37ifN8/E9t37vsy2t4n+I08uYF3/Jm02EkbWwXjokvyUpW8IMVm32P9RoiT/j0pT14Kb4kPsaDw6XjBdeFs5x0VQdi2rQR7IOZOlCc4RFpYcWutKtLy3LgB5YDWByi5Lm4Zl8/jG3122nL/vnRlvqnCBhTgzYWZQR69CnZL/V4Lw4d3zb+iNrrjB7gXhjVwoinZO9i62bVTTJz9LZ3JlKJrnRHb5UQQ1riVXiIl6LH/kDCoEfXYKLB03rMZMGjRW60opcqj8RQViEIsfPO/Kn8pWqCKUG0AE38zxM8OGW0FIY7iFfMy58/huR3+x7Vr4eIebq7CvEG8GYs39XEVVK9v5qheBU7IoGu7MhQlMwVMNx6cpnu+Iap5I/mlz4+bqsv8JEPUcHcv4NmLJwlxA6ybO7rekoqRqm6794bjQYo6TxalVrVb7DVTGf5UlmzWQQ+eUDjER9THv3G3PYGIJiG9owp2j9BcyT0HIKnQpcVc46c229yFTWCI64nUg+ZsCvGN0kRsdoAbcWfIyQw+kLXTei5/HiT/MmoGgcBg9SkPZ8TOzlVNf/aIndWGZyIxe3MgeiJHKw5GvgGIyAY0jiJRrM2BhCAFDx40XV/jVjWGAhnV5i4nnZMnjpLvPwiZVXdBvhhsBQ0LznopX4M53G4D7Nl9q56i4LAY9yEHXEW/ZGdM+NeU9Y7hurOGtZUHiYYFk/2tYYVNrUqObAhcK/QURwb4gOZXKLJya7uWceS/3SCJzCCSfcd6LNxXGAKqwWn/FOmDdSJc4YpgfXLr5KbeEvmF0wgc0gG4hKFD2M3yJkMSZYvu9n5JhXhZeWig4BzcWyzGJ9vut62fXSzxr5xKxkDdo4KKGCZOgSE9OnBVHYz4BtUZ+VsbbuSQjlMQ1dxzIIF3tmrs2zV0cKp1B5lEu5Zbz03CcYR319do+sdY9l+LX3CUjC2eK4+UlsY6rJucWnx/89bXz2WL3fVR97q9W9U8il9YBGDaTMFdEhliYr7sBK8zZ9qMP0aoNauwZSqQUB7egwN6R6fQiRs9ihT17lxgvu/B4QYO0u9G13j4XI8I4L/9v8iHfGoIUDvZjBkxi3mJ0iurVW2xX6B/4hXw8RB2jjnQpPRivuiO0OXfM2YaIMaKVrMzzaGO8XNIACCCCRyQeH+2YvCR+7bvq7j2Yl7JjR09rf+VpB5STZVAc5BrcAJL/XuPOk55aonyBjXkW8N3YrD4+tYeAnBDVQEF9dpndx8t4dlDwZxjeINzf48sUsQdvPJsG/JIaH9dMiLnqkm00vjd2pPRrYVk8WLxYrY4MtV5/Lg++0+0vNT471qs7rl/E84hkNZz14faQCNO5cYXi1eSYTZUNtYDTApwK3kfrvUrb/A46NcvYaYQ1N/cDxPHgRw2y3/AH/ypHsveyf+Me5K0Ve61mjIWcIpHjgzreNrI/yfci6oYRr4OWpOoYhLL3aJbRhzrAP6RUaJH7KzKLsX5CAXYQiRkXLkP3lAQVoh6Pm+K=","summary":[]},"output_index":0,"sequence_number":3}
+
+event: response.output_item.added
+data: {"type":"response.output_item.added","item":{"id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","type":"message","status":"in_progress","content":[],"phase":"commentary","role":"assistant"},"output_index":1,"sequence_number":4}
+
+event: response.content_part.added
+data: {"type":"response.content_part.added","content_index":0,"item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","output_index":1,"part":{"type":"output_text","annotations":[],"logprobs":[],"text":""},"sequence_number":5}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"下","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"co8V8Qow0Jm1WG1","output_index":1,"sequence_number":6}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"周","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"FlMBSqXhm1xHBC3","output_index":1,"sequence_number":7}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"三","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"5mc1q7EFroDEbwl","output_index":1,"sequence_number":8}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"是","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"dHqDHv8UypD0tqp","output_index":1,"sequence_number":9}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":" ","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"0UEVk6r1DYvQiOb","output_index":1,"sequence_number":10}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"202","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"RVfno5kNmnWl8","output_index":1,"sequence_number":11}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"6","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"mqRgzbuUUQK6KP3","output_index":1,"sequence_number":12}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"-","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"5kCO5tTzvHasD0H","output_index":1,"sequence_number":13}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"10","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"VGisfz5HIJepOc","output_index":1,"sequence_number":14}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"-","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"XzaJvVzDTYaCD3y","output_index":1,"sequence_number":15}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"28","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"W2rZKBuE2ILTEz","output_index":1,"sequence_number":16}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"，","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"2zD3grAOjlxN9Ig","output_index":1,"sequence_number":17}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"周","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"sHQQPnIpyIMAX0Z","output_index":1,"sequence_number":18}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"四","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"eiWt9m2QyAw5jbj","output_index":1,"sequence_number":19}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"是","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"fI3DNtRvkzQ2VSe","output_index":1,"sequence_number":20}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":" ","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"wFVAB1luSMNEr1V","output_index":1,"sequence_number":21}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"2026","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"4YgcVFbafVOZ","output_index":1,"sequence_number":22}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"-10","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"Y7kQmMz3VxgTH","output_index":1,"sequence_number":23}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"-29","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"OOfRzeNzMAbhW","output_index":1,"sequence_number":24}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"。为","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"GigS9AT7AB8xzT","output_index":1,"sequence_number":25}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"覆盖去","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"MSVBH2E7pc6gK","output_index":1,"sequence_number":26}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"程和","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"BY10nGZVgZ14Cg","output_index":1,"sequence_number":27}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"返程","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"SnFEBOX822gUZe","output_index":1,"sequence_number":28}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"两端，需要","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"KmVD0Mfwg5Z","output_index":1,"sequence_number":29}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"查询北京、","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"MvDvSLDTI50","output_index":1,"sequence_number":30}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"上海在这","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"i1q5VC1vLyza","output_index":1,"sequence_number":31}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"两天的","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"HMofMJFKsf7TZ","output_index":1,"sequence_number":32}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"天气，共 ","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"19zdH7fhREX","output_index":1,"sequence_number":33}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","content_index":0,"delta":"4 项。","item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"obfuscation":"s2kc6TOPu3U1","output_index":1,"sequence_number":34}
+
+event: response.output_text.done
+data: {"type":"response.output_text.done","content_index":0,"item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","logprobs":[],"output_index":1,"sequence_number":35,"text":"下周三是 2026-10-28，周四是 2026-10-29。为覆盖去程和返程两端，需要查询北京、上海在这两天的天气，共 4 项。"}
+
+event: response.content_part.done
+data: {"type":"response.content_part.done","content_index":0,"item_id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","output_index":1,"part":{"type":"output_text","annotations":[],"logprobs":[],"text":"下周三是 2026-10-28，周四是 2026-10-29。为覆盖去程和返程两端，需要查询北京、上海在这两天的天气，共 4 项。"},"sequence_number":36}
+
+event: response.output_item.done
+data: {"type":"response.output_item.done","item":{"id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","type":"message","status":"completed","content":[{"type":"output_text","annotations":[],"logprobs":[],"text":"下周三是 2026-10-28，周四是 2026-10-29。为覆盖去程和返程两端，需要查询北京、上海在这两天的天气，共 4 项。"}],"phase":"commentary","role":"assistant"},"output_index":1,"sequence_number":37}
+
+event: response.output_item.added
+data: {"type":"response.output_item.added","item":{"id":"fc_0259784c6a47d43b016adb70ee34148193ab02ac1ae95e6ba7","type":"function_call","status":"in_progress","arguments":"","call_id":"call_ehNj3D23Aj8YXFWLi2iyoUob","name":"get_weather"},"output_index":2,"sequence_number":38}
+
+event: response.function_call_arguments.delta
+data: {"type":"response.function_call_arguments.delta","delta":"{\"city\":\"北京\",\"date\":\"2026-10-28\"}","item_id":"fc_0259784c6a47d43b016adb70ee34148193ab02ac1ae95e6ba7","obfuscation":"ocA8yxYcGGXVZmW","output_index":2,"sequence_number":39}
+
+event: response.function_call_arguments.done
+data: {"type":"response.function_call_arguments.done","arguments":"{\"city\":\"北京\",\"date\":\"2026-10-28\"}","item_id":"fc_0259784c6a47d43b016adb70ee34148193ab02ac1ae95e6ba7","output_index":2,"sequence_number":40}
+
+event: response.output_item.done
+data: {"type":"response.output_item.done","item":{"id":"fc_0259784c6a47d43b016adb70ee34148193ab02ac1ae95e6ba7","type":"function_call","status":"completed","arguments":"{\"city\":\"北京\",\"date\":\"2026-10-28\"}","call_id":"call_ehNj3D23Aj8YXFWLi2iyoUob","name":"get_weather"},"output_index":2,"sequence_number":41}
+
+event: response.output_item.added
+data: {"type":"response.output_item.added","item":{"id":"fc_0259784c6a47d43b016adb70ee358c81939e936ecb24b3ac5d","type":"function_call","status":"in_progress","arguments":"","call_id":"call_fk4O6MUMkIRA6Gfv2M8Gkufm","name":"get_weather"},"output_index":3,"sequence_number":42}
+
+event: response.function_call_arguments.delta
+data: {"type":"response.function_call_arguments.delta","delta":"{\"city\":\"上海\",\"date\":\"2026-10-28\"}","item_id":"fc_0259784c6a47d43b016adb70ee358c81939e936ecb24b3ac5d","obfuscation":"0B4HJW6SS6Gikyi","output_index":3,"sequence_number":43}
+
+event: response.function_call_arguments.done
+data: {"type":"response.function_call_arguments.done","arguments":"{\"city\":\"上海\",\"date\":\"2026-10-28\"}","item_id":"fc_0259784c6a47d43b016adb70ee358c81939e936ecb24b3ac5d","output_index":3,"sequence_number":44}
+
+event: response.output_item.done
+data: {"type":"response.output_item.done","item":{"id":"fc_0259784c6a47d43b016adb70ee358c81939e936ecb24b3ac5d","type":"function_call","status":"completed","arguments":"{\"city\":\"上海\",\"date\":\"2026-10-28\"}","call_id":"call_fk4O6MUMkIRA6Gfv2M8Gkufm","name":"get_weather"},"output_index":3,"sequence_number":45}
+
+event: response.output_item.added
+data: {"type":"response.output_item.added","item":{"id":"fc_0259784c6a47d43b016adb70ee359c8193b66b8d3518d7de88","type":"function_call","status":"in_progress","arguments":"","call_id":"call_18KQfzGbaBzHYLiWoBnnlVNz","name":"get_weather"},"output_index":4,"sequence_number":46}
+
+event: response.function_call_arguments.delta
+data: {"type":"response.function_call_arguments.delta","delta":"{\"city\":\"北京\",\"date\":\"2026-10-29\"}","item_id":"fc_0259784c6a47d43b016adb70ee359c8193b66b8d3518d7de88","obfuscation":"GttI6Z6BlFaV11C","output_index":4,"sequence_number":47}
+
+event: response.function_call_arguments.done
+data: {"type":"response.function_call_arguments.done","arguments":"{\"city\":\"北京\",\"date\":\"2026-10-29\"}","item_id":"fc_0259784c6a47d43b016adb70ee359c8193b66b8d3518d7de88","output_index":4,"sequence_number":48}
+
+event: response.output_item.done
+data: {"type":"response.output_item.done","item":{"id":"fc_0259784c6a47d43b016adb70ee359c8193b66b8d3518d7de88","type":"function_call","status":"completed","arguments":"{\"city\":\"北京\",\"date\":\"2026-10-29\"}","call_id":"call_18KQfzGbaBzHYLiWoBnnlVNz","name":"get_weather"},"output_index":4,"sequence_number":49}
+
+event: response.output_item.added
+data: {"type":"response.output_item.added","item":{"id":"fc_0259784c6a47d43b016adb70ee35ac819396b92f9c19ed8676","type":"function_call","status":"in_progress","arguments":"","call_id":"call_74PyPsbaWUfBPBwAd70mNuf3","name":"get_weather"},"output_index":5,"sequence_number":50}
+
+event: response.function_call_arguments.delta
+data: {"type":"response.function_call_arguments.delta","delta":"{\"city\":\"上海\",\"date\":\"2026-10-29\"}","item_id":"fc_0259784c6a47d43b016adb70ee35ac819396b92f9c19ed8676","obfuscation":"rBCSh1TJPrkPAVv","output_index":5,"sequence_number":51}
+
+event: response.function_call_arguments.done
+data: {"type":"response.function_call_arguments.done","arguments":"{\"city\":\"上海\",\"date\":\"2026-10-29\"}","item_id":"fc_0259784c6a47d43b016adb70ee35ac819396b92f9c19ed8676","output_index":5,"sequence_number":52}
+
+event: response.output_item.done
+data: {"type":"response.output_item.done","item":{"id":"fc_0259784c6a47d43b016adb70ee35ac819396b92f9c19ed8676","type":"function_call","status":"completed","arguments":"{\"city\":\"上海\",\"date\":\"2026-10-29\"}","call_id":"call_74PyPsbaWUfBPBwAd70mNuf3","name":"get_weather"},"output_index":5,"sequence_number":53}
+
+event: response.completed
+data: {"type":"response.completed","response":{"id":"resp_0259784c6a47d43b016adb70e9f9fc81939653f3f623f71fc5","object":"response","created_at":1792766186,"status":"completed","access_programs":null,"background":false,"completed_at":1792766190,"content_filters":[{"blocked":false,"source_type":"prompt","content_filter_raw":[],"content_filter_results":{},"content_filter_offsets":{"start_offset":0,"end_offset":91,"check_offset":0}},{"blocked":false,"source_type":"completion","content_filter_raw":[],"content_filter_results":{},"content_filter_offsets":{"start_offset":0,"end_offset":709,"check_offset":0}}],"error":null,"frequency_penalty":0.0,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"max_tool_calls":null,"model":"gpt-5.6-sol","moderation":null,"output":[{"id":"rs_0259784c6a47d43b016adb70ea918c8193b0585ce30cae7b6a","type":"reasoning","content":[],"encrypted_content":"xWM4gg7d1eo+KlFUzUSAxHIU1JgFl4+9cXv+hS9Dtxm2T54fmzscE4snLZZSoxUAVEMSjnBq8Ir+PgBioogZgdjYZTWEuxgpDhDNJHhplltKm5Lv7kBN16IfVjjtAFhZnRFmaudg164xWEZKSR8e5d5sJdpbp75GoZd2YobH+X+0IRghKkP9gDs2jyWjxy8IoFR660+dVEh0s8WWnzze3uoSIABy0e3EBkt+tSvEPU2ZnPoFHfkezr9pqb90TuU6G/xJyriLkJG7u6ZoF1YBSvzfBMDrn1XWOLZZh2EIQTaoQPT2TdOnkMGH1Huve2K/po3QoUydM01DCwBsqtDSx20KehvH4qPG277XfBG3lDLBhuuR2gydUjCJTqXepOgfa15CbdWeaipwxp9Xn7jcQ52q25PGx97B5cOa3br6RSpSXDw+62UFyF/R93PvmjwKa0zyoWFQpIiDRcovzCSGubg4zifbMY0U5GzPQ2Z4i2JWsljYd1urBTiqOFDM+7Hv3xBVBcUodwMWKEnjzzygEbB4DGzqSrY3asDyZMxwP9Ou/3WiH0kKhDxrntE+ICfPGfqySRjvELBTrtpyfRpJHk8uBfE+gWFc87Ph7KX0XK6qCM33MLMsy756qLzh0sVNIlqoZRc+XG1/dS7qsODYOpCgL56kHBcbBgD8ZyGTJzjy8svsBgPoXT0ZYVok5VyQyAvL/OWSu1aXMIZvvHzDBV309og/ytnZGrOXhmMHHB7bb3BpiSknXf+M9Qm1MMQjYxal+GEZorsrO1UofcX9NEXlfrmnF+CFvbFWF7Nkrdmv6t4KOuVqHB4FVa/Sdmq8RAQEPQBl8pO6yttovM2ouM+DuPkzz7OGCgzligdROVUwxVGFnTAfAK9tZv8K4aGXp7nD8Drl4/sC40kc+0b6a8xKXmLEbHQpOeehY3YZnloiu4B4iu1pihZvPIp8CVaBQ5XznSLbQ7W6KGlilEB+MwAVNdh9eWGQrHbPg9P/fVlA0h0E+6533zYcx7DMkgpHvYS/4f0mOmXv1B7ugFbJZHiPml/rc1ejCCCQPrGJ0mSMrVENq72SgvYZ4S3j3vE+F9exibppE7Ev+Wa1Y8Gp7/TOG1VmcK2ssKzNq5pSBaacX08vIhbucbHcjSzQJcztxwIYdTgU/W/c3gjjn1SktkdCZd5N5PbkGvDTrYlD/aREvXahyrfxt8/9H/+tuscRaROQEvz87J9Lu5RUIt1TBydlzHekeqj2pa4iVODSYahcAQjDJi7uP3PDZJzue5WmKty3BvI3c37tEv7FeatnC6v9FGHIb9wZMEFksJYEOu0CXlXAqR04acv74/G90Xn2bZJrROCheltavd1ztNr9UJI9/Zz8kfxoE1HOfSWBsErQXvA90mb9UB67zy92DUull4eUopW7jpPaRlaz15f45d1k4mirHuCHmed4u5przrqA2oDTIyxK+jFo3yVjKpggE82MBZO32NVQu2b4vrNDs+aWHo2A5B4xvMH=","summary":[]},{"id":"msg_0259784c6a47d43b016adb70eb63808193bf81ae8d9c627251","type":"message","status":"completed","content":[{"type":"output_text","annotations":[],"logprobs":[],"text":"下周三是 2026-10-28，周四是 2026-10-29。为覆盖去程和返程两端，需要查询北京、上海在这两天的天气，共 4 项。"}],"phase":"commentary","role":"assistant"},{"id":"fc_0259784c6a47d43b016adb70ee34148193ab02ac1ae95e6ba7","type":"function_call","status":"completed","arguments":"{\"city\":\"北京\",\"date\":\"2026-10-28\"}","call_id":"call_ehNj3D23Aj8YXFWLi2iyoUob","name":"get_weather"},{"id":"fc_0259784c6a47d43b016adb70ee358c81939e936ecb24b3ac5d","type":"function_call","status":"completed","arguments":"{\"city\":\"上海\",\"date\":\"2026-10-28\"}","call_id":"call_fk4O6MUMkIRA6Gfv2M8Gkufm","name":"get_weather"},{"id":"fc_0259784c6a47d43b016adb70ee359c8193b66b8d3518d7de88","type":"function_call","status":"completed","arguments":"{\"city\":\"北京\",\"date\":\"2026-10-29\"}","call_id":"call_18KQfzGbaBzHYLiWoBnnlVNz","name":"get_weather"},{"id":"fc_0259784c6a47d43b016adb70ee35ac819396b92f9c19ed8676","type":"function_call","status":"completed","arguments":"{\"city\":\"上海\",\"date\":\"2026-10-29\"}","call_id":"call_74PyPsbaWUfBPBwAd70mNuf3","name":"get_weather"}],"parallel_tool_calls":true,"presence_penalty":0.0,"previous_response_id":null,"prompt_cache_key":null,"prompt_cache_retention":"24h","reasoning":{"context":"all_turns","effort":"medium","mode":"standard","summary":null},"safety_identifier":null,"service_tier":"default","store":false,"temperature":1.0,"text":{"format":{"type":"text"},"verbosity":"medium"},"tool_choice":"auto","tool_usage":{"image_gen":{"input_tokens":0,"input_tokens_details":{"image_tokens":0,"text_tokens":0},"output_tokens":0,"output_tokens_details":{"image_tokens":0,"text_tokens":0},"total_tokens":0},"web_search":{"num_requests":0}},"tools":[{"type":"function","description":"查询某个城市某一天的天气","name":"get_weather","output_schema":null,"parameters":{"type":"object","properties":{"city":{"type":"string"},"date":{"type":"string"}},"required":["city","date"],"additionalProperties":false},"strict":true}],"top_logprobs":0,"top_p":0.98,"truncation":"disabled","usage":{"input_tokens":93,"input_tokens_details":{"cache_write_tokens":0,"cached_tokens":0},"output_tokens":235,"output_tokens_details":{"reasoning_tokens":66},"total_tokens":328},"user":null,"metadata":{}},"sequence_number":54}
+

@@ -1,0 +1,97 @@
+{
+  "id": "c_000002",
+  "api": "anthropic.messages",
+  "source": "proxy",
+  "run": "runs/example",
+  "request": {
+    "url": "http://gateway.example/v1/messages?beta=true",
+    "headers": {
+      "anthropic-version": "2023-06-01",
+      "anthropic-beta": "claude-code-20250219,interleaved-thinking-2025-05-14,effort-2025-11-24",
+      "x-api-key": "<redacted>",
+      "X-Claude-Code-Session-Id": "0b6c2f6e-1d2a-4c3b-9e8f-5a7d6c4b3a21"
+    },
+    "body_file": "request.json",
+    "sha256": "3f1c0e9a5b7d2c4e6f8a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "x-oneapi-request-id": "2026102310404211234567",
+      "x-new-api-version": "v1.0.0-rc.23"
+    },
+    "events_file": "response.sse",
+    "message_file": "message.json",
+    "message_id": "msg_0184mK5t1Hi6XC8H7QR6GaTe",
+    "inference_geo": null
+  },
+  "outcome": {
+    "ok": true,
+    "transport_end": "done",
+    "protocol": "completed",
+    "stop_reason": "end_turn",
+    "error": null,
+    "flags": []
+  },
+  "timing": {
+    "started_at": "2026-10-23T02:40:42Z",
+    "first_byte_ms": 2310,
+    "total_ms": 4120
+  },
+  "usage": {
+    "input_tokens": 312,
+    "cache_read_tokens": 18240,
+    "cache_write_tokens": 3000,
+    "cache_write_by_ttl": {
+      "5m": 1000,
+      "1h": 2000
+    },
+    "output_tokens": 41,
+    "thinking_tokens": 0,
+    "raw": {
+      "input_tokens": 312,
+      "cache_read_input_tokens": 18240,
+      "cache_creation_input_tokens": 3000,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 1000,
+        "ephemeral_1h_input_tokens": 2000
+      },
+      "output_tokens": 41
+    }
+  },
+  "cost_usd": 0.0071,
+  "attempts": [
+    {
+      "n": 1,
+      "status": 529,
+      "transport_end": "done",
+      "protocol": "failed",
+      "decision": "retry",
+      "reason": "overloaded",
+      "usage": null,
+      "cost_usd": 0.0,
+      "events_file": "attempts/1.sse"
+    },
+    {
+      "n": 2,
+      "status": 200,
+      "transport_end": "done",
+      "protocol": "completed",
+      "decision": "stop",
+      "reason": "completed",
+      "usage": null,
+      "cost_usd": 0.0071,
+      "events_file": null
+    }
+  ],
+  "item_id": null,
+  "repeat": null,
+  "tags": {
+    "case": "example"
+  },
+  "parent": "c_000001",
+  "parent_candidates": [],
+  "fork_of": null,
+  "edits": [],
+  "format": "callkit.call/2"
+}

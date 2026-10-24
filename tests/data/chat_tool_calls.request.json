@@ -1,0 +1,1 @@
+{"model":"gpt-5.6-sol","messages":[{"role":"user","content":"北京和上海今天天气怎么样？请调用工具查询。"}],"tools":[{"type":"function","function":{"name":"get_weather","description":"查询某个城市今天的天气","parameters":{"type":"object","properties":{"city":{"type":"string"}},"required":["city"]}}}],"reasoning_effort":"none"}

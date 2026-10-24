@@ -1,0 +1,26 @@
+name: 问题报告 / Bug report
+description: callkit 的行为和文档不符，或者出错了 / Something does not work as documented
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: 发生了什么 / What happened
+      description: 期望的行为和实际的行为 / Expected vs. actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: 复现步骤 / How to reproduce
+      description: 最小的代码或命令；请删掉密钥 / Minimal code or commands; remove any API keys
+      render: python
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: 版本 / Versions
+      description: callkit、Python、openai / anthropic SDK 的版本，以及接口（Messages、Responses、Chat）
+    validations:
+      required: true

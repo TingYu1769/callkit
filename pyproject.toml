@@ -1,0 +1,99 @@
+[project]
+name = "callkit"
+version = "0.2.0"
+description = "单次 LLM API 调用原样存盘、可拼多轮、可分叉重放 / Record every LLM API call verbatim; splice, fork and replay them"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "TingYu1769" }]
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.27,<1",
+]
+keywords = [
+    "llm",
+    "anthropic",
+    "openai",
+    "claude-code",
+    "codex",
+    "recording",
+    "replay",
+    "reproducibility",
+    "httpx",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: POSIX",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/TingYu1769/callkit"
+Repository = "https://github.com/TingYu1769/callkit"
+Issues = "https://github.com/TingYu1769/callkit/issues"
+Changelog = "https://github.com/TingYu1769/callkit/blob/main/CHANGELOG.md"
+
+[project.scripts]
+callkit = "callkit.cli:main"
+
+[dependency-groups]
+dev = [
+    "anthropic>=2.2.0",
+    "basedpyright",
+    "openai>=3.37.0",
+    "pytest",
+    "ruff",
+]
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/callkit"]
+
+# ---- ruff: formatting and lint ----
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+extend-select = [
+    "BLE001",  # no blind except
+    "S110",    # no try/except/pass
+    "TID251",  # banned imports outside allowed modules
+    "C901",    # cyclomatic complexity
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"httpx".msg = "only callkit.transport and callkit.proxy may do network I/O; adapters are pure transformations"
+
+[tool.ruff.lint.per-file-ignores]
+"src/callkit/transport.py" = ["TID251"]
+"src/callkit/proxy.py" = ["TID251"]
+"tests/**" = ["TID251"]  # tests fake servers with httpx.MockTransport
+
+# ---- type checking ----
+[tool.basedpyright]
+include = ["src"]
+pythonVersion = "3.12"
+typeCheckingMode = "standard"
+
+# ---- pytest ----
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "network: calls real model APIs (costs money); skipped by default",
+]

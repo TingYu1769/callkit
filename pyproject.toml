@@ -1,6 +1,6 @@
 [project]
 name = "callkit"
-version = "0.2.0"
+version = "0.2.1"
 description = "单次 LLM API 调用原样存盘、可拼多轮、可分叉重放 / Record every LLM API call verbatim; splice, fork and replay them"
 readme = "README.md"
 license = "MIT"

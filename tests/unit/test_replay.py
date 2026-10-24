@@ -1,6 +1,8 @@
-"""Replay cache: when Client and SDK are mounted for replay reruns, identical requests get old responses, no network access, and cost is recorded as 0."""
+"""Replay cache: on Client and SDK reruns, identical requests get old responses, skip network access, and cost is recorded as 0."""
 
 import json
+import random
+from collections import defaultdict, deque
 
 import httpx
 import openai
@@ -8,7 +10,7 @@ import pytest
 
 from callkit import Client, Endpoint, fork, recording_http_client, transport
 from callkit.errors import CallkitError
-from callkit.replay import ReplayCache
+from callkit.replay import ReplayCache, replay_key
 from callkit.store import RunStore
 from tests.fakes import DATA, Server, good_stream, sse_response
 
@@ -33,7 +35,7 @@ def server(monkeypatch):
 
 @pytest.fixture
 def old_run(server, tmp_path):
-    """Old run: A was sent twice (two different samples), B once."""
+    """Old run: A was sent twice (two different samples), and B once."""
     server.replies += [
         sse_response(good_stream()),
         sse_response(THINKING),
@@ -51,16 +53,16 @@ def test_client_replays_kth_sample_then_goes_online(server, old_run, tmp_path):
     with Client(EP, tmp_path / "new", replay_from=old_run) as c:
         recs = [c.call(body) for body in (A, A, B, A)]
         back = RunStore(tmp_path / "new").load(recs[1].id)
-        # Records from replay can still be forked.
+        # replayed records can still be forked
         alt = c.call(fork(back, model="claude-opus-5-5"), fork_of=back)
     old = RunStore(old_run)
     ids = [r.tags.get("replay_of", "").rsplit(":", 1)[-1] for r in recs]
     assert ids == ["c_000001", "c_000002", "c_000003", ""]
-    # Only the third A (the old run has only two A records) and the fork hit the network.
+    # only the third A (the old run has only two A samples) and the fork hit the network
     assert len(server.requests) == 2
     olds = [old.load(i).message for i in ("c_000001", "c_000002", "c_000003")]
     assert [r.message for r in recs[:3]] == olds
-    assert recs[0].message != recs[1].message  # Repeated requests get different samples back.
+    assert recs[0].message != recs[1].message  # repeated requests get different samples
     assert all(r.cost_usd == 0.0 and r.outcome.ok for r in recs[:3])
     assert all(r.attempts[0].reason == "replayed" for r in recs[:3])
     assert back.message == recs[1].message
@@ -125,7 +127,7 @@ def test_sdk_replay_json_and_stream(tmp_path):
     assert [r.tags["replay_of"].rsplit(":", 1)[-1] for r in recs] == ["c_000001", "c_000002"]
     assert all(
         r.cost_usd == 0.0 and r.outcome.ok and r.source == "sdk" for r in recs
-    )  # Cost is recorded as 0 even when prices are provided.
+    )  # cost is still recorded as 0 even with prices
 
 
 def test_replay_needs_run_dir(tmp_path):
@@ -148,7 +150,7 @@ def test_failed_records_not_replayed(server, tmp_path):
 
 
 def test_counters_shared_per_new_run(server, old_run, tmp_path):
-    """Clients writing to the same new run share counters; different new runs each start from the beginning."""
+    """Clients writing the same new run share counters; different new runs each start from the beginning."""
     new, other = tmp_path / "new", tmp_path / "other"
     with (
         Client(EP, new, replay_from=old_run) as c1,
@@ -160,7 +162,7 @@ def test_counters_shared_per_new_run(server, old_run, tmp_path):
 
 
 def test_other_gateway_or_org_not_replayed(server, old_run, tmp_path):
-    """The same request body sent to a different gateway or organization is not considered identical."""
+    """Sending the same request body to a different gateway or organization is not considered the same request."""
     server.replies += [sse_response(good_stream()), sse_response(good_stream())]
     other = Endpoint("gw2", "http://other-gw", "CALLKIT_TEST_KEY")
     with Client(other, tmp_path / "new", replay_from=old_run) as c:
@@ -171,3 +173,92 @@ def test_other_gateway_or_org_not_replayed(server, old_run, tmp_path):
     with Client(org, tmp_path / "new2", replay_from=old_run) as c:
         assert "replay_of" not in c.call(A).tags
     assert len(server.requests) == 2
+
+
+def _fake_run(tmp_path, specs):
+    """Write records directly from (success/failure, URL, org header, request hash) without network access."""
+    from tests.unit.test_store import make
+
+    store = RunStore(tmp_path / "src")
+    for ok, url, org, sha in specs:
+        rec = make(store, ok=ok)
+        rec.request.url, rec.request.sha256 = url, sha
+        rec.request.headers = {"openai-organization": org} if org else {}
+        store.write(rec, [])
+    return store.dir
+
+
+def test_open_reads_only_the_index(tmp_path, monkeypatch):
+    a, b = "http://a/v1/messages", "http://b/v1/messages"
+    run = _fake_run(tmp_path, [(True, a, None, "h"), (True, b, None, "h"), (True, a, None, "h")])
+    reads = []
+    real = RunStore.load_meta
+    monkeypatch.setattr(
+        RunStore, "load_meta", lambda self, cid: reads.append(cid) or real(self, cid)
+    )
+    cache = ReplayCache(run)
+    assert reads == []  # no meta.json is read on open
+    got = cache.take(b, {}, "h")
+    assert got is not None and got.id == "c_000002"
+    assert reads == ["c_000001", "c_000002"]  # stops at the first match; c_000003 is not read
+    got = cache.take(a, {}, "h")
+    # records already read are not read again
+    assert got is not None and got.id == "c_000001" and len(reads) == 2
+
+
+def test_lazy_lookup_matches_eager_snapshot(tmp_path):
+    """Compare against an eager table built by reading meta.json one by one; URL, org header, success/failure, and hash are randomly mixed."""
+    rng = random.Random(7)
+    urls, orgs, shas = (
+        ["http://a/v1/messages", "http://b/v1/messages"],
+        [None, "org-1"],
+        ["x", "y", "z"],
+    )
+    specs = [
+        (rng.random() > 0.2, rng.choice(urls), rng.choice(orgs), rng.choice(shas))
+        for _ in range(60)
+    ]
+    run = _fake_run(tmp_path, specs)
+    eager: dict[str, deque[str]] = defaultdict(deque)
+    for n, (ok, url, org, sha) in enumerate(specs, 1):
+        if ok:
+            eager[replay_key(url, {"openai-organization": org} if org else {}, sha)].append(
+                f"c_{n:06d}"
+            )
+    cache = ReplayCache(run)
+    for _ in range(150):
+        url, org, sha = rng.choice(urls), rng.choice(orgs), rng.choice(shas)
+        headers = {"OpenAI-Organization": org} if org else {}
+        want = eager[replay_key(url, headers, sha)]
+        got = cache.take(url, headers, sha)
+        assert (got.id if got else None) == (want.popleft() if want else None)
+
+
+def test_unreadable_candidate_is_skipped_with_warning(tmp_path):
+    run = _fake_run(tmp_path, [(True, "http://gw/v1/messages", None, "h")] * 2)
+    (run / "calls" / "c_000001" / "meta.json").write_text("{broken")
+    cache = ReplayCache(run)
+    with pytest.warns(RuntimeWarning, match="c_000001/meta.json"):
+        got = cache.take("http://gw/v1/messages", {}, "h")
+    assert got is not None and got.id == "c_000002"
+    assert cache.take("http://gw/v1/messages", {}, "h") is None
+
+
+def test_record_taken_by_another_thread_meanwhile(tmp_path, monkeypatch):
+    """Reading meta.json does not hold a lock: if another thread takes this record during a read, continue searching later; both sides cannot get the same record."""
+    url = "http://gw/v1/messages"
+    cache = ReplayCache(_fake_run(tmp_path, [(True, url, None, "h")] * 2))
+    real = ReplayCache._key_of
+    inner = []
+
+    def key_of(self, call_id, sha256):
+        if not inner:  # during the first read, simulate another thread taking a record first
+            inner.append(None)
+            inner[0] = self.take(url, {}, "h")
+        return real(self, call_id, sha256)
+
+    monkeypatch.setattr(ReplayCache, "_key_of", key_of)
+    outer = cache.take(url, {}, "h")
+    assert inner[0] is not None and outer is not None
+    assert (inner[0].id, outer.id) == ("c_000001", "c_000002")
+    assert cache.take(url, {}, "h") is None

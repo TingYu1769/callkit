@@ -4,7 +4,7 @@ title: "callkit: record every LLM API call verbatim; splice, fork and replay the
 type: software
 authors:
   - alias: TingYu1769
-version: 0.2.0
+version: 0.2.1
 date-released: 2026-10-24
 license: MIT
 repository-code: "https://github.com/TingYu1769/callkit"

@@ -12,6 +12,7 @@ import pytest
 
 from callkit import Client, Endpoint, extend, fork, pending_calls
 from callkit.proxy import Proxy
+from tests.fakes import has_stored
 
 BASE = os.environ.get("CALLKIT_LIVE_OPENAI_BASE_URL", "")
 MODEL = os.environ.get("CALLKIT_LIVE_OPENAI_MODEL", "gpt-5.6-sol")
@@ -71,7 +72,7 @@ def test_live_tool_call_extend_fork(tmp_path):
         first = call(c, body("北京和上海今天天气怎么样？请调用工具查询。", tools=TOOLS))
         assert first.outcome.ok and first.outcome.stop_reason == "tool_calls", first.outcome
         assert len(pending_calls(first)) >= 1 and first.usage and first.usage.output_tokens > 0
-        assert (tmp_path / "run" / "calls" / first.id / "response.sse").exists()
+        assert has_stored(tmp_path / "run", first.id, "response.sse")
         second = call(
             c,
             extend(first, tool_results={i: "晴，25°C，无降水" for i in pending_calls(first)}),
@@ -142,4 +143,4 @@ def test_live_sdk_through_proxy(tmp_path):
     good = [r for r in recs if r.outcome.ok]
     assert len(good) == 2, [r.outcome for r in recs]
     assert all(r.api == "openai.chat_completions" and r.usage for r in good)
-    assert {(proxy.store.calls / r.id / "response.sse").exists() for r in good} == {True, False}
+    assert {"response.sse" in proxy.store.file_names(r.id) for r in good} == {True, False}

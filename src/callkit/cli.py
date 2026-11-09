@@ -6,12 +6,12 @@ import argparse
 import json
 import sys
 import unicodedata
+from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from callkit.browse import Node, Row
-    from callkit.record import Record
     from callkit.store import RunStore
 
 API_SHORT = {
@@ -69,8 +69,18 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("run", help="run directory")
     p.add_argument("-o", "--output", default=None, help="output file; defaults to stdout")
     p.add_argument("--ok-only", action="store_true", help="only export successful calls")
+    from callkit.cli_store import add_commands
+
+    store_commands = add_commands(sub)
     args = parser.parse_args(argv)
-    commands = {"proxy": _proxy, "ls": _ls, "show": _show, "tree": _tree, "export": _export}
+    commands: dict[str, Callable[[argparse.Namespace], int]] = {
+        "proxy": _proxy,
+        "ls": _ls,
+        "show": _show,
+        "tree": _tree,
+        "export": _export,
+        **store_commands,
+    }
     return commands[args.command](args)
 
 
@@ -107,19 +117,19 @@ def _proxy(args: argparse.Namespace) -> int:
 
 
 def _open(run: str) -> RunStore:
-    from callkit.store import RunStore
+    from callkit.store import RunStore, is_run_dir
 
     path = Path(run)
-    if not (path / "run.json").exists():
-        sys.exit(f"{run} is not a callkit run dir (no run.json)")
-    # Read only: do not create calls/ or write run.json
+    if not is_run_dir(path):
+        sys.exit(f"{run} is not a callkit run dir (no run.db or run.json)")
+    # Read only: do not create the database or calls/, do not write run.json
     return RunStore(path, create=False)
 
 
 def _ls(args: argparse.Namespace) -> int:
     from callkit import browse
 
-    rows = [browse.row_of(rec) for rec in browse.records(_open(args.run))]
+    rows = _open(args.run).summaries()
     shown = [r for r in rows if not (args.failed and r.ok)]
     if args.limit:
         shown = shown[-args.limit :]
@@ -228,9 +238,9 @@ def _show(args: argparse.Namespace) -> int:
 def _tree(args: argparse.Namespace) -> int:
     from callkit import browse
 
-    recs = list(browse.records(_open(args.run)))
-    labels = {rec.id: _label(rec) for rec in recs}
-    forest = browse.tree([browse.row_of(rec) for rec in recs])
+    rows = _open(args.run).summaries()
+    labels = {r.id: _label(r) for r in rows}
+    forest = browse.tree(rows)
     for session, roots in forest.items():
         if args.session is not None and session != args.session:
             continue
@@ -241,13 +251,9 @@ def _tree(args: argparse.Namespace) -> int:
     return 0
 
 
-def _label(rec: Record) -> str:
-    from callkit import browse
-
-    r, a = browse.row_of(rec), browse.answer(rec)
-    said = "; ".join(a.tool_calls) if a.tool_calls else browse.clip(a.text, 50)
+def _label(r: Row) -> str:
     state = (r.stop or "") if r.ok else f"✗ {r.reason}"
-    return f"{r.id}  {r.model}  {state}  {said}"
+    return f"{r.id}  {r.model}  {state}  {r.said}"
 
 
 def _print_children(node: Node, labels: dict[str, str], prefix: str) -> None:

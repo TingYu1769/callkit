@@ -54,3 +54,25 @@ class Server:
 
     def client(self) -> httpx.Client:
         return httpx.Client(transport=httpx.MockTransport(self.handler))
+
+
+def stored(run, call_id: str, name: str) -> bytes:
+    """Return a stored field of a record by its legacy-layout file name (meta.json, response.sse, ...), whichever storage layout is in use."""
+    from callkit.store import RunStore
+
+    return RunStore(run, create=False).read_file(call_id, name)
+
+
+def has_stored(run, call_id: str, name: str) -> bool:
+    try:
+        stored(run, call_id, name)
+    except (KeyError, FileNotFoundError):
+        return False
+    return True
+
+
+def dir_bytes(run) -> bytes:
+    """All files in the run directory concatenated as bytes (to check that a key leaked into none of them, including the SQLite WAL)."""
+    from pathlib import Path
+
+    return b"".join(p.read_bytes() for p in sorted(Path(run).rglob("*")) if p.is_file())

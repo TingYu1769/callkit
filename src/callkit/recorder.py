@@ -187,7 +187,7 @@ class Recorder:
             # without a session key, do not accept parent; only record it as a candidate
             parent, candidates = None, [parent]
         rec = Record(
-            id=self.store.new_call_id(),
+            id="",  # the call id is assigned in store.write
             api=api,
             source=source,
             run=str(self.store.dir),

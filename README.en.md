@@ -32,18 +32,14 @@ client = OpenAI(
 client.chat.completions.create(model="deepseek-flash", messages=[{"role": "user", "content": "Explain SSE in one sentence."}])
 ```
 
-Each call gets its own folder in the run directory:
+A run directory is one SQLite file holding one entry per call:
 
 ```
 runs/demo/
-├── run.json          format name, creation time (plus endpoint config and callkit version with callkit's Client)
-├── index.jsonl       one line per call: id, outcome, cost, parent, fork_of
-└── calls/c_000001/
-    ├── meta.json     the record: outcome, usage, timing, tags
-    ├── request.json  the request body, byte for byte
-    ├── response.sse  the raw event stream (non-streaming responses go to response.body)
-    └── message.json  the assembled answer
+└── run.db    request bodies, raw event streams, assembled answers, outcomes, usage and cost, one entry per call
 ```
+
+While it is in use, SQLite also keeps `run.db-wal` and `run.db-shm` next to it. To see one call's raw text, run `callkit cat runs/demo c_000001 response`; to browse files, `callkit unpack` writes calls out as one folder per call.
 
 Look at it from the command line:
 
@@ -65,7 +61,8 @@ No price table was given, so the cost column shows `-`; see [Pricing and caps](#
 - **Pricing and caps.** Give a price table and every call gets a cost. With a cap, requests stop once the run directory's total reaches it. Several processes writing one directory share one ledger.
 - **Replay cache.** The k-th occurrence of a request gets the k-th successful record from an earlier run, so a rerun of a sampling experiment gets back the same distinct samples.
 - **Scheduler.** `run_items` / `arun_items` wrap any "process one item" function with concurrency, resume and a spending cap, and tag each record with its item.
-- **CLI.** `ls`, `show`, `tree` and `export` list calls, show one call, draw conversation trees and export JSONL.
+- **Single-file storage.** A run directory is one SQLite file, so hundreds of thousands of calls do not turn into millions of small files. `ls`, `tree`, replay and resume read only a summary table, never the large fields.
+- **CLI.** `ls`, `show`, `tree` and `export` list calls, show one call, draw conversation trees and export JSONL; `cat`, `unpack`, `migrate` and `backup` print raw fields, write files, migrate old directories and take backups.
 
 ## Installation
 
@@ -180,7 +177,7 @@ callkit proxy --upstream ... --run runs/E3 --prices prices.json --cap 5
 ```
 
 - With `cap_usd`, once the run directory's total spending reaches the cap, requests are not sent. The SDK mount and the proxy answer HTTP 402 with `x-should-retry: false`, which the openai and anthropic SDKs do not retry; requests for a model with no price are stopped the same way. callkit's own `Client` raises instead: `CapReached` at the cap, `MissingPrice` for a model with no price.
-- Prices are merged into the run directory's `prices.json` per model; passing a different price for the same model later is an error.
+- Prices are merged into the run directory's price table per model; passing a different price for the same model later is an error.
 - A successful call without usage (e.g. streaming Chat without `stream_options={"include_usage": True}`) gets an unknown cost, a `usage_missing` flag and a one-time warning.
 - Codex retries a 402 from the proxy a few times; each retry is stopped too and costs nothing.
 
@@ -206,7 +203,7 @@ for r in callkit.run_items(questions, ask, run="runs/E4", concurrency=8, cap_usd
 ```
 
 - `questions` maps item ids to arguments; `repeats=N` runs each item N times. `arun_items` takes an async function.
-- Each finished item gets a line in the run directory's `items.jsonl`; reruns skip items that already succeeded.
+- Each finished item gets a line in the run directory's item ledger; reruns skip items that already succeeded.
 - Calls made inside the function through a recording client or `Client` are tagged with the item id; `r.call_ids` lists them.
 - An exception fails only that item. To stop early and clean up at once, wrap the generator in `contextlib.closing(run_items(...))` (`contextlib.aclosing` for the async version).
 
@@ -217,6 +214,10 @@ callkit ls RUN [--failed] [--limit N]     # list calls, with token and cost tota
 callkit show RUN CALL_ID [--raw]          # one call: outcome, timing, usage, request and answer summary
 callkit tree RUN [--session S]            # continuations (→) and forks (⑂) as a tree per session
 callkit export RUN [-o FILE] [--ok-only]  # JSONL, one call per line with full request body and answer
+callkit cat RUN CALL_ID [FIELD]           # print one field byte for byte: request (default), response, message, meta
+callkit unpack RUN [CALL_ID ...] -o DIR   # write calls out as one folder per call
+callkit migrate OLD NEW                   # move a file-layout run dir (callkit <= 0.2.1) into SQLite
+callkit backup RUN DEST                   # take a consistent snapshot of a run dir, even while it is in use
 callkit proxy --upstream URL --run RUN    # run the recording proxy
 ```
 
@@ -229,7 +230,7 @@ c_000001  deepseek-flash  tool_calls  get_weather({"city": "Beijing"})
 
 ## Storage format
 
-One folder per call; `meta.json` is the record, in format `callkit.call/2`. Main fields:
+A run directory is one SQLite file, `run.db`. The `calls` table has one row per call with its id, outcome, usage, cost, parent and other summary fields; `ls`, `tree`, replay and resume read only this table. The `blobs` table holds the large fields, one row per "file" (`meta.json`, `request.json`, `response.sse` or `response.body`, `message.json`, `attempts/N.sse`); fields over 4 KB are zlib-compressed and come back byte for byte. `meta.json` is the record, in format `callkit.call/2`. Main fields:
 
 | Field | Content |
 |---|---|
@@ -243,6 +244,10 @@ One folder per call; `meta.json` is the record, in format `callkit.call/2`. Main
 | `item_id`, `repeat`, `tags` | batch and scheduler keys, plus custom tags |
 
 Load a record with `RunStore("runs/E1").load("c_000001")`; it comes with its request body and answer and can go straight into `extend` or `fork`. Older formats stay readable: `/1` records are upgraded to `/2` on load.
+
+Run directories created by callkit 0.2.1 or earlier use the file layout (`run.json`, `index.jsonl`, `calls/<id>/`); newer versions keep reading and writing them, and `callkit migrate OLD NEW` moves one into SQLite. Migrate offline: nothing may write to the old directory meanwhile. Rerunning the same command resumes an interrupted migration, and every batch is read back and compared byte for byte. All processes writing one run directory must use the same callkit version, because older versions do not know `run.db`.
+
+To back up a run directory in use, run `callkit backup` rather than copying `run.db`: committed data that has not been checkpointed may still live only in `run.db-wal`.
 
 ## How it works
 
@@ -259,7 +264,7 @@ The SDK mount and the proxy share one Recorder; callkit's Client builds its own 
 
 | Tool | Unit of record | How it hooks in | Raw bytes | Local files only | Splice / fork | Spending cap |
 |---|---|---|---|---|---|---|
-| callkit | one API call | SDK mount, proxy, own client | yes | yes | yes | yes |
+| callkit | one API call | SDK mount, proxy, own client | yes | yes (SQLite) | yes | yes |
 | [llm](https://github.com/simonw/llm) | one conversation turn | own client and plugins | response JSON | yes (SQLite) | continue and fork threads | no |
 | [Inspect AI](https://github.com/UKGovernmentBEIS/inspect_ai) | one evaluation | own model layer | first few calls per model and all failed calls by default; full logging optional | yes | `fork()` copies state to run several solvers | yes (per sample, needs model prices) |
 | [LiteLLM](https://github.com/BerriAI/litellm) | gateway logs | gateway, SDK | no | gateway can run without a database; spend tracking and budgets need one | cache | yes (budgets) |
@@ -277,6 +282,8 @@ Based on each project's documentation as of October 2026. Cassette tools such as
 - With several choices (`n>1`), `extend` continues choice 0 only.
 - Streams recorded through a relay gateway may already have been rewritten by it, so they are not the upstream's original bytes.
 - Event streams do not keep per-line arrival times, only time to first byte and total time. callkit's `Client` reads streams line by line and stores line endings as `\n`.
+- SQLite run directories cannot live on network file systems such as NFS (WAL mode needs shared memory).
+- A forked child process cannot keep using a run directory its parent opened; open it again in the child (the `spawn` start method of `multiprocessing` does this).
 - Windows is not supported (`fcntl`).
 
 ## Contributing

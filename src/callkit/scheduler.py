@@ -6,7 +6,7 @@
         ...
 
 - Concurrency: the sync version uses a fixed-size thread pool, one item after another; the async version uses a fixed number of worker coroutines. Results are yielded one by one in completion order.
-- Resuming: after each item finishes, a line is appended to ``items.jsonl`` in the run directory (success/failure, error, start/end times, call IDs produced); reruns skip
+- Resuming: after each item finishes, a line is appended to the item ledger in the run directory (success/failure, error, start/end times, call IDs produced); reruns skip
   already successful (item_id, repeat). Function return values are not persisted.
 - Item context: before running the function, set ``callkit.context.CURRENT_ITEM``; calls made through a recording client or ``Client`` are tagged with
   item_id and repeat.
@@ -18,10 +18,8 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import threading
 import time
-import warnings
 from collections import deque
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterator, Mapping
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -31,9 +29,7 @@ from typing import Any
 
 from callkit.context import CURRENT_ITEM, ItemContext
 from callkit.errors import CallkitError, CapReached
-from callkit.store import RunStore, append_line, now_iso
-
-LEDGER = "items.jsonl"
+from callkit.store import RunStore, now_iso
 
 
 @dataclass
@@ -177,12 +173,10 @@ class _Plan:
             raise CallkitError(f"item ids must be strings: {bad[:3]}")
         self.dir = Path(run).resolve()
         self.store = RunStore(self.dir)
-        self.ledger = self.dir / LEDGER
         self.cap_usd = cap_usd
-        done = _done(self.ledger)
+        done = self.store.items_done()
         self.jobs = [(i, r) for i in items for r in range(repeats) if (i, r) not in done]
         self._capped = threading.Event()
-        self._lock = threading.Lock()
 
     def may_start(self) -> bool:
         if self._capped.is_set():
@@ -207,8 +201,7 @@ class _Plan:
             "finished_at": now_iso(),
             "call_ids": res.call_ids,
         }
-        with self._lock:
-            append_line(self.ledger, line)
+        self.store.append_item(line)
         return res
 
     def raise_if_capped(self) -> None:
@@ -216,22 +209,3 @@ class _Plan:
             raise CapReached(
                 f"spent ${self.store.spent_usd():.4f}, reached the cap of ${self.cap_usd}; remaining items were not started"
             )
-
-
-def _done(ledger: Path) -> set[tuple[str, int]]:
-    """Successful (item_id, repeat) pairs in the ledger. Split the bytes into lines and decode line by line: a partially written Chinese character (crash mid-write) only corrupts that line,
-    and U+2028 in item_id will not split a line."""
-    if not ledger.exists():
-        return set()
-    done: set[tuple[str, int]] = set()
-    for line in ledger.read_bytes().split(b"\n"):
-        if not line.strip():
-            continue
-        try:
-            row = json.loads(line)
-        except ValueError:
-            warnings.warn(f"skipped an unreadable line in {ledger}", RuntimeWarning, stacklevel=4)
-            continue
-        if row.get("ok"):
-            done.add((str(row["item_id"]), int(row["repeat"])))
-    return done

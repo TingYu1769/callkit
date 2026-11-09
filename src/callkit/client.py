@@ -102,7 +102,7 @@ class Client:
         )
         if old is not None:  # replay cache hit: no network, no cost, cap is not checked
             assert self._replay is not None
-            call_id = self.store.new_call_id()
+            call_id = ""  # the call id is assigned in store.write
             rec, raws = _replayed(
                 self._replay,
                 old,
@@ -119,7 +119,7 @@ class Client:
                 raise CapReached(
                     f"spent ${self.store.spent_usd():.4f}, reached the cap of ${self.cap_usd}"
                 )
-            call_id = self.store.new_call_id()
+            call_id = ""  # the call id is assigned in store.write
             t0 = time.monotonic()
             results = transport.send(
                 self._http,

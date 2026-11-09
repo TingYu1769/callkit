@@ -11,6 +11,7 @@ import os
 import pytest
 
 from callkit import Client, Endpoint
+from tests.fakes import has_stored
 
 pytestmark = pytest.mark.network
 
@@ -46,7 +47,7 @@ def test_live_tool_call(tmp_path):
     assert rec.outcome.ok, rec.outcome
     assert rec.outcome.stop_reason == "tool_use"
     assert rec.message and any(b["type"] == "tool_use" for b in rec.message["content"])
-    assert (tmp_path / "run" / "calls" / rec.id / "response.sse").exists()
+    assert has_stored(tmp_path / "run", rec.id, "response.sse")
 
 
 @pytest.mark.skipif(

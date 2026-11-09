@@ -119,7 +119,7 @@ def test_bytes_pass_through_and_record(setup):
     assert rec.source == "proxy" and rec.outcome.ok and rec.body == sent
     assert rec.request.url == up.url + "/v1/messages?beta=true" and rec.tags == {"session": SESSION}
     assert rec.request.headers["x-api-key"] == "<redacted>"
-    assert (proxy.store.calls / rec.id / "response.sse").read_bytes() == good_stream()
+    assert proxy.store.read_file(rec.id, "response.sse") == good_stream()
 
 
 def test_parent_inferred_within_session(setup):
@@ -167,7 +167,7 @@ def test_non_streaming_json_response_recorded(setup):
     assert resp.json() == reply
     rec = proxy.store.load(proxy.store.index()[0].id)
     assert rec.outcome.ok and rec.outcome.stop_reason == "end_turn" and rec.message == reply
-    assert (proxy.store.calls / rec.id / "response.body").exists()
+    assert json.loads(proxy.store.read_file(rec.id, "response.body")) == reply
 
 
 def test_upstream_down_gives_502_and_is_recorded(setup, tmp_path):

@@ -2,8 +2,9 @@
 
 "Identical" means the URL, the organization/project/workspace request headers, and the request hash (raw request body bytes + behavior-affecting request headers) are all the same. When the same hash appears for the kth time in this process, take the kth successful record for that hash from the old run (sorted by call id); once old records are exhausted, fall back to the normal network call. That way a rerun of a sampling experiment can recover the same distinct samples. Opening the old run takes a snapshot; records written after opening are not replayed (if the same directory is both the old run and the new run, it will not replay records it just wrote). Clients in the same process that write the same new run and replay the same old run share this snapshot and counters.
 
-On open it reads only ``index.jsonl`` and indexes by request hash. The URL and headers require ``meta.json``, so they are read only when a request hash hits:
-read candidates with that hash in call order and stop at the first match. Reading ``meta.json`` for every record to build the table would take tens of minutes when there are many records on a spinning disk.
+When the old run uses the SQLite layout, candidates are looked up directly by replay key in the ``calls_replay`` index (the snapshot is the maximum seq at open time), and a key is queried only the first time it is needed.
+When the old run uses the legacy file layout, opening reads only ``index.jsonl`` and indexes by request hash. The URL and headers require ``meta.json``, so they are read only when a request hash hits:
+read candidates with that hash in call order and stop at the first match. Reading ``meta.json`` for every record to build the table would take tens of minutes when the old run has many records.
 """
 
 from __future__ import annotations
@@ -16,10 +17,8 @@ from pathlib import Path
 
 from callkit.errors import CallkitError
 from callkit.record import Record
-from callkit.store import RunStore
+from callkit.store import SCOPE_HEADERS, RunStore, SqliteStore, is_run_dir, replay_key
 
-# Headers that select organization, project, or workspace: the same request body sent to a different organization should not count as identical.
-SCOPE_HEADERS = ("openai-organization", "openai-project", "anthropic-workspace-id")
 _SHARED: dict[tuple[str, str], ReplayCache] = {}
 _SHARED_LOCK = threading.Lock()
 
@@ -27,16 +26,22 @@ _SHARED_LOCK = threading.Lock()
 class ReplayCache:
     def __init__(self, run: str | Path) -> None:
         path = Path(run).resolve()
-        if not (path / "run.json").exists():
-            raise CallkitError(f"replay source {run} is not a callkit run dir (no run.json)")
+        if not is_run_dir(path):
+            raise CallkitError(
+                f"replay source {run} is not a callkit run dir (no run.db or run.json)"
+            )
         self.dir = path
-        # Read only: do not create the directory or write run.json
+        # Read only: do not create the database or directory, do not write
         self._store = RunStore(path, create=False)
-        # Request hash -> successful records not yet replayed (sorted by call id)
+        # SQLite: replay key -> successful records not yet replayed; legacy layout: request hash -> same. Both sorted by call id
         self._ids: dict[str, list[str]] = defaultdict(list)
-        for row in sorted(self._store.index(), key=lambda r: r.id):
-            if row.ok:
-                self._ids[row.sha256].append(row.id)
+        self._snapshot: int | None = None
+        if isinstance(self._store, SqliteStore):
+            self._snapshot = self._store.max_seq()
+        else:
+            for row in sorted(self._store.index(), key=lambda r: (len(r.id), r.id)):
+                if row.ok:
+                    self._ids[row.sha256].append(row.id)
         self._keys: dict[
             str, str | None
         ] = {}  # Call id -> replay key; meta.json is read only when needed; None if unreadable
@@ -55,6 +60,18 @@ class ReplayCache:
     def take(self, url: str, headers: Mapping[str, str], sha256: str) -> Record | None:
         """Return the next successful record that has not been replayed for the same URL and request; return None if none remain."""
         key = replay_key(url, headers, sha256)
+        call_id = self._take_indexed(key) if self._snapshot is not None else self._take(key, sha256)
+        return None if call_id is None else self._store.load(call_id)
+
+    def _take_indexed(self, key: str) -> str | None:
+        assert isinstance(self._store, SqliteStore) and self._snapshot is not None
+        with self._lock:
+            if key not in self._ids:
+                self._ids[key] = self._store.replay_ids(key, self._snapshot)
+            ids = self._ids[key]
+            return ids.pop(0) if ids else None
+
+    def _take(self, key: str, sha256: str) -> str | None:
         with self._lock:
             pending = list(self._ids.get(sha256, ()))
         # Read in call order; stop at the first record whose URL and headers match
@@ -71,7 +88,7 @@ class ReplayCache:
                     break
         else:
             return None
-        return self._store.load(call_id)
+        return call_id
 
     def _key_of(self, call_id: str, sha256: str) -> str | None:
         try:
@@ -91,16 +108,11 @@ class ReplayCache:
 
     def raw_response(self, rec: Record) -> tuple[str, bool]:
         """Old record's raw response and whether it is an event stream."""
-        name = rec.response.events_file
-        if not name:
-            return "", False
-        path = self.dir / "calls" / rec.id / name
-        return path.read_text(encoding="utf-8"), name.endswith(".sse")
+        return self._store.raw_response(rec.id)
 
 
-def replay_key(url: str, headers: Mapping[str, str], sha256: str) -> str:
-    """Replay matching key: full URL (host, path, query string) + the organization/project/workspace request headers + request hash. Comparing only the request hash would treat
-    requests with a different gateway or organization as the same."""
-    lower = {k.lower(): v for k, v in headers.items()}
-    picked = "|".join(f"{h}={lower.get(h, '')}" for h in SCOPE_HEADERS)
-    return f"{url}|{picked}|{sha256}"
+__all__ = [
+    "SCOPE_HEADERS",
+    "ReplayCache",
+    "replay_key",
+]  # The replay key now lives in callkit.store and can still be imported from here

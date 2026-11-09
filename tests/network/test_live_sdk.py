@@ -13,6 +13,7 @@ import pytest
 
 from callkit import recording_async_http_client, recording_http_client
 from callkit.store import RunStore
+from tests.fakes import has_stored
 
 OPENAI_BASE = os.environ.get("CALLKIT_LIVE_OPENAI_BASE_URL", "")
 OPENAI_MODEL = os.environ.get("CALLKIT_LIVE_OPENAI_MODEL", "gpt-5.6-sol")
@@ -131,4 +132,4 @@ def test_live_anthropic_httpx2(tmp_path):
     ok = [r for r in records(tmp_path / "run") if r.outcome.ok]
     assert len(ok) == 2 and all(r.api == "anthropic.messages" and r.usage for r in ok)
     assert ok[0].message and ok[0].message["id"] == msg.id
-    assert (tmp_path / "run" / "calls" / ok[1].id / "response.sse").exists()
+    assert has_stored(tmp_path / "run", ok[1].id, "response.sse")

@@ -30,18 +30,14 @@ client = OpenAI(
 client.chat.completions.create(model="deepseek-flash", messages=[{"role": "user", "content": "用一句话介绍 SSE。"}])
 ```
 
-每次调用在运行目录里存一个文件夹：
+一个运行目录就是一个 SQLite 文件，每次调用在里面存一条：
 
 ```
 runs/demo/
-├── run.json          格式名、建立时间（用 callkit 的 Client 时还有端点配置和 callkit 版本）
-├── index.jsonl       每次调用一行：调用号、成败、花费、parent、fork_of
-└── calls/c_000001/
-    ├── meta.json     记录本体：结果、用量、耗时、标签
-    ├── request.json  原样的请求体
-    ├── response.sse  事件流原文（非流式响应存 response.body）
-    └── message.json  拼好的回答
+└── run.db    请求体、事件流原文、拼好的回答、结果、用量、花费，一次调用一条
 ```
+
+运行时旁边还会有 SQLite 自己管理的 `run.db-wal`、`run.db-shm`。要看某次调用的原文，用 `callkit cat runs/demo c_000001 response`；想按文件翻，用 `callkit unpack` 写成一个调用一个文件夹。
 
 用命令行查看：
 
@@ -63,7 +59,8 @@ c_000001 10-24 09:30:02  chat      deepseek-flash        ok stop                
 - **计价与封顶**：给价格表就算出每次调用的花费。设了上限，运行目录的累计花费到顶后不再发请求。多个进程写同一个目录时共用一本账。
 - **回放缓存**：同一请求第 k 次出现，就取旧运行里的第 k 条成功记录。重跑采样实验，拿回的还是原来那几个不同的样本。
 - **调度器**：`run_items` / `arun_items` 包住任意一个“处理一个 item”的函数，负责并发、续跑和封顶，并把记录挂到对应的 item 上。
-- **命令行**：`ls`、`show`、`tree`、`export` 用来列调用、看单次调用、看对话树、导出 JSONL。
+- **单文件存储**：一个运行目录一个 SQLite 文件，几十万次调用也不会变成上百万个小文件。`ls`、`tree`、回放、续跑只查摘要表，不读大字段。
+- **命令行**：`ls`、`show`、`tree`、`export` 用来列调用、看单次调用、看对话树、导出 JSONL；`cat`、`unpack`、`migrate`、`backup` 用来取原文、写成文件、迁移旧目录、做备份。
 
 ## 安装
 
@@ -178,7 +175,7 @@ callkit proxy --upstream ... --run runs/E3 --prices prices.json --cap 5
 ```
 
 - 设了 `cap_usd` 后，运行目录的累计花费到顶，请求就不再发出。SDK 挂载和代理直接回 HTTP 402，响应头带 `x-should-retry: false`，openai、anthropic SDK 都不会重试；缺所用模型的价格时也这样拦下。callkit 自己的 `Client` 改为抛异常：到顶抛 `CapReached`，缺价格抛 `MissingPrice`。
-- 价格按模型合并进运行目录的 `prices.json`。同一个模型后来传了不同的价格，会报错。
+- 价格按模型合并进运行目录的价格表。同一个模型后来传了不同的价格，会报错。
 - 调用成功却没有用量时（比如 Chat 流式请求没带 `stream_options={"include_usage": True}`），花费记为未知，结果里标 `usage_missing`，并提醒一次。
 - 代理回给 Codex 的 402 会被它再试几次，每次也都会被拦下，不会产生费用。
 
@@ -204,7 +201,7 @@ for r in callkit.run_items(questions, ask, run="runs/E4", concurrency=8, cap_usd
 ```
 
 - `questions` 是从 item_id 到参数的映射，`repeats=N` 让每个 item 跑 N 次。异步版 `arun_items` 接 async 函数。
-- 每个 item 跑完，在运行目录的 `items.jsonl` 记一行。重跑时跳过已经成功的。
+- 每个 item 跑完，在运行目录的 item 账本里记一行。重跑时跳过已经成功的。
 - 函数里经录制客户端或 `Client` 发出的调用会记上 item_id，`r.call_ids` 列出这个 item 的调用号。
 - 函数抛异常时只算这个 item 失败，其他照跑。要中途停下并马上清理，用 `contextlib.closing(run_items(...))` 包一层（异步版用 `contextlib.aclosing`）。
 
@@ -215,6 +212,10 @@ callkit ls RUN [--failed] [--limit N]     # 列出调用，末尾汇总 token �
 callkit show RUN CALL_ID [--raw]          # 看一次调用：结果、耗时、用量、请求与回答摘要
 callkit tree RUN [--session S]            # 按会话把续轮（→）和分叉（⑂）串成树
 callkit export RUN [-o FILE] [--ok-only]  # 导出 JSONL，一次调用一行，含完整请求体和回答
+callkit cat RUN CALL_ID [FIELD]           # 把一个字段原样写到标准输出：request（默认）、response、message、meta
+callkit unpack RUN [CALL_ID ...] -o DIR   # 按一个调用一个文件夹的布局写出来
+callkit migrate OLD NEW                   # 把 0.2.1 及更早的文件布局目录搬进 SQLite
+callkit backup RUN DEST                   # 给运行中的目录拷一份一致的快照
 callkit proxy --upstream URL --run RUN    # 起录制代理
 ```
 
@@ -227,7 +228,7 @@ c_000001  deepseek-flash  tool_calls  get_weather({"city": "北京"})
 
 ## 存储格式
 
-一次调用一个文件夹，`meta.json` 是记录本体，格式名 `callkit.call/2`。主要字段：
+一个运行目录一个 SQLite 文件 `run.db`。`calls` 表一次调用一行，存调用号、结果、用量、花费、parent 等摘要，`ls`、`tree`、回放和续跑都只查它；`blobs` 表存大字段，一行对应一个“文件”（`meta.json`、`request.json`、`response.sse` 或 `response.body`、`message.json`、`attempts/N.sse`），超过 4 KB 的用 zlib 压缩，读回时逐字节还原。`meta.json` 是记录本体，格式名 `callkit.call/2`。主要字段：
 
 | 字段 | 内容 |
 |---|---|
@@ -241,6 +242,10 @@ c_000001  deepseek-flash  tool_calls  get_weather({"city": "北京"})
 | `item_id`、`repeat`、`tags` | 批量与调度器的键，以及自定义标签 |
 
 读回一条记录用 `RunStore("runs/E1").load("c_000001")`，记录里带着请求体和回答，可以直接拿去 `extend` 或 `fork`。格式升级时，旧格式照样能读：读到 `/1` 会就地升成 `/2`。
+
+0.2.1 及更早版本建的目录是文件布局（`run.json`、`index.jsonl`、`calls/<id>/`），新版本照常读写，也可以用 `callkit migrate OLD NEW` 搬进 SQLite。迁移要离线做：旧目录不能有别的进程在写；中断后再跑同一条命令会接着搬，每批搬完都会读回逐字节比对。同一个运行目录的所有写入进程要用同一版本 callkit，旧版本不认识 `run.db`。
+
+运行中的目录要备份，用 `callkit backup`，不要直接拷 `run.db`：还没检查点的数据可能只在 `run.db-wal` 里。
 
 ## 工作原理
 
@@ -257,7 +262,7 @@ SDK 挂载和代理共用一个 Recorder，callkit 的 Client 自己建记录。
 
 | 工具 | 记录单位 | 接入方式 | 原样字节 | 只用本地文件 | 拼接与分叉 | 花费封顶 |
 |---|---|---|---|---|---|---|
-| callkit | 一次 API 调用 | SDK 挂载、代理、自带客户端 | 有 | 是 | 有 | 有 |
+| callkit | 一次 API 调用 | SDK 挂载、代理、自带客户端 | 有 | 是（SQLite） | 有 | 有 |
 | [llm](https://github.com/simonw/llm) | 一次对话回合 | 自带客户端与插件 | 存回答 JSON | 是（SQLite） | 可续写、分叉线程 | 无 |
 | [Inspect AI](https://github.com/UKGovernmentBEIS/inspect_ai) | 一次评测 | 自带模型层 | 默认存每个模型的前几次调用和出错的调用，可开全量 | 是 | `fork()` 复制状态跑多个 solver | 有（按 sample，需配价格） |
 | [LiteLLM](https://github.com/BerriAI/litellm) | 网关日志 | 网关、SDK | 无 | 网关可不用数据库，花费跟踪和预算要数据库 | 缓存 | 有（预算） |
@@ -275,6 +280,8 @@ SDK 挂载和代理共用一个 Recorder，callkit 的 Client 自己建记录。
 - 多个回答（`n>1`）时，`extend` 只接第 0 个。
 - 经过中转网关录到的流，可能已被网关改写过，不是上游的原始字节。
 - 事件流不存每行的到达时间，只记首字节和总耗时。callkit 的 `Client` 按行读流，行尾统一存成 `\n`。
+- SQLite 运行目录不能放在 NFS 等网络文件系统上（WAL 模式要用共享内存）。
+- fork 出的子进程不能接着用父进程打开的运行目录，要在子进程里重新打开（`multiprocessing` 用 spawn 方式即可）。
 - 不支持 Windows（用到 `fcntl`）。
 
 ## 参与开发

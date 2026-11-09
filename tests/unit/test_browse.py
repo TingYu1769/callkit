@@ -163,3 +163,17 @@ def test_cli_export(run, tmp_path, capsys):
 def test_cli_rejects_non_run_dir(tmp_path):
     with pytest.raises(SystemExit, match="is not a callkit run dir"):
         main(["ls", str(tmp_path)])
+
+
+def test_ls_and_tree_read_only_summaries_on_sqlite(run, capsys, monkeypatch):
+    from callkit.store import SqliteStore
+
+    def no_load(self, call_id):
+        raise AssertionError("ls/tree must not load whole records")
+
+    monkeypatch.setattr(SqliteStore, "load", no_load)
+    monkeypatch.setattr(SqliteStore, "load_meta", no_load)
+    assert main(["ls", str(run)]) == 0
+    assert "c_000006" in capsys.readouterr().out
+    assert main(["tree", str(run)]) == 0
+    assert "c_000001" in capsys.readouterr().out

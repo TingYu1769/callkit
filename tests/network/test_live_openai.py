@@ -10,6 +10,7 @@ import os
 import pytest
 
 from callkit import Client, Endpoint, pending_calls
+from tests.fakes import has_stored
 
 pytestmark = [
     pytest.mark.network,
@@ -65,7 +66,7 @@ def test_live_tool_call(tmp_path):
     assert rec.outcome.ok and rec.outcome.stop_reason == "completed", rec.outcome
     assert pending_calls(rec), rec.message
     assert rec.usage and rec.usage.output_tokens > 0
-    assert (tmp_path / "run" / "calls" / rec.id / "response.sse").exists()
+    assert has_stored(tmp_path / "run", rec.id, "response.sse")
 
 
 def test_live_batch_and_resume(tmp_path):

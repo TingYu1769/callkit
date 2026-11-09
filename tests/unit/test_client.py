@@ -6,7 +6,15 @@ import pytest
 
 from callkit import Client, Endpoint, Price, transport
 from callkit.errors import CallkitError, CapReached, MissingPrice, StreamRequired
-from tests.fakes import Server, error_response, good_stream, sse_response
+from callkit.store import RunStore
+from tests.fakes import (
+    Server,
+    dir_bytes,
+    error_response,
+    good_stream,
+    has_stored,
+    sse_response,
+)
 
 EP = Endpoint("gw", "http://gw:3000", "CALLKIT_TEST_KEY")
 PRICE = Price(input=3, output=15, cache_read=0.3, cache_write=3.75, cache_write_by_ttl={"1h": 6})
@@ -46,9 +54,9 @@ def test_call_writes_record(server, tmp_path):
     assert rec.message is not None and rec.response.message_id == rec.message["id"]
     back = c.store.load(rec.id)
     assert back.body == sent.content and back.to_dict() == rec.to_dict()
-    run = json.loads((tmp_path / "run" / "run.json").read_text())
+    run = c.store.run_meta()
     assert run["endpoint"]["name"] == "gw" and "callkit_commit" in run
-    assert "sk-test-123" not in (tmp_path / "run" / "calls" / rec.id / "meta.json").read_text()
+    assert b"sk-test-123" not in dir_bytes(tmp_path / "run")
 
 
 def test_bytes_body_sent_unchanged(server, tmp_path):
@@ -91,7 +99,7 @@ def test_retry_recorded_and_failed_attempts_billed(server, tmp_path):
         ("stop", "completed"),
     ]
     assert rec.attempts[0].cost_usd == 0.0 and rec.cost_usd == rec.attempts[1].cost_usd
-    assert (tmp_path / "run" / "calls" / rec.id / "attempts" / "1.body").exists()
+    assert has_stored(tmp_path / "run", rec.id, "attempts/1.body")
 
 
 def test_failure_does_not_raise(server, tmp_path):
@@ -121,8 +129,8 @@ def test_custom_auth_header_redacted_and_not_inherited(server, tmp_path):
     ep = Endpoint("gw", "http://gw:3000", "CALLKIT_TEST_KEY", auth_header="X-Gw")
     base = Client(ep, tmp_path / "run").call(BODY)
     assert server.requests[0].headers["x-gw"] == "Bearer sk-test-123"
-    meta = (tmp_path / "run" / "calls" / base.id / "meta.json").read_text()
-    assert "sk-test-123" not in meta and base.request.headers["x-gw"] == "<redacted>"
+    assert b"sk-test-123" not in dir_bytes(tmp_path / "run")
+    assert base.request.headers["x-gw"] == "<redacted>"
     # switch back to the default auth-header endpoint
     Client(EP, tmp_path / "run").call(BODY, fork_of=base)
     sent = server.requests[1]
@@ -171,12 +179,7 @@ def test_responses_endpoint(server, tmp_path):
     )
     assert len(pending_calls(rec)) == 4 and all(c.startswith("call_") for c in pending_calls(rec))
     assert rec.cost_usd and rec.cost_usd > 0 and rec.usage and rec.usage.thinking_tokens is not None
-    import json as _json
-
-    assert (
-        _json.loads((tmp_path / "run" / "run.json").read_text())["endpoint"]["api"]
-        == "openai.responses"
-    )
+    assert RunStore(tmp_path / "run").run_meta()["endpoint"]["api"] == "openai.responses"
 
 
 def test_responses_extend_and_fork_flags(server, tmp_path):
@@ -232,7 +235,7 @@ def test_chat_endpoint_adds_stream_defaults_and_chains(server, tmp_path):
 
 
 def test_prefixed_endpoint_keeps_path_on_parent_and_fork(server, tmp_path):
-    """When the endpoint URL has a prefix (such as DeepSeek's /anthropic), parent calls and forks do not duplicate the prefix; query strings are preserved as-is."""
+    """When the endpoint URL has a prefix (such as DeepSeek's /anthropic), continuation turns and forks do not duplicate the prefix; query strings are preserved as-is."""
     server.replies += [sse_response(good_stream())] * 3
     ep = Endpoint("ds", "https://api.example/anthropic", "CALLKIT_TEST_KEY")
     c = Client(ep, tmp_path / "run")
@@ -249,10 +252,7 @@ def test_prefixed_endpoint_keeps_path_on_parent_and_fork(server, tmp_path):
 def test_client_prices_go_into_run_dir(server, tmp_path):
     with Client(EP, tmp_path / "run", prices={"claude-sonnet-5-5": PRICE}):
         pass
-    assert (
-        json.loads((tmp_path / "run" / "prices.json").read_text())["claude-sonnet-5-5"]["output"]
-        == 15
-    )
+    assert RunStore(tmp_path / "run").merge_prices({})["claude-sonnet-5-5"].output == 15
     with pytest.raises(CallkitError, match="already has different prices"):
         Client(EP, tmp_path / "run", prices={"claude-sonnet-5-5": Price(1, 1, 1, 1)})
 

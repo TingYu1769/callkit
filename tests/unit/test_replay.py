@@ -11,8 +11,8 @@ import pytest
 from callkit import Client, Endpoint, fork, recording_http_client, transport
 from callkit.errors import CallkitError
 from callkit.replay import ReplayCache, replay_key
-from callkit.store import RunStore
-from tests.fakes import DATA, Server, good_stream, sse_response
+from callkit.store import FileStore, RunStore, SqliteStore
+from tests.fakes import DATA, Server, good_stream, has_stored, sse_response
 
 EP = Endpoint("gw", "http://gw", "CALLKIT_TEST_KEY")
 A = {
@@ -66,7 +66,7 @@ def test_client_replays_kth_sample_then_goes_online(server, old_run, tmp_path):
     assert all(r.cost_usd == 0.0 and r.outcome.ok for r in recs[:3])
     assert all(r.attempts[0].reason == "replayed" for r in recs[:3])
     assert back.message == recs[1].message
-    assert (tmp_path / "new" / "calls" / recs[1].id / "response.sse").exists()
+    assert has_stored(tmp_path / "new", recs[1].id, "response.sse")
     assert alt.fork_of == back.id and "replay_of" not in alt.tags
 
 
@@ -175,11 +175,11 @@ def test_other_gateway_or_org_not_replayed(server, old_run, tmp_path):
     assert len(server.requests) == 2
 
 
-def _fake_run(tmp_path, specs):
-    """Write records directly from (success/failure, URL, org header, request hash) without network access."""
+def _fake_run(tmp_path, specs, backend=FileStore):
+    """Write records directly from (success/failure, URL, org header, request hash) without network access. Defaults to the old layout, which the lazy meta-reading tests target."""
     from tests.unit.test_store import make
 
-    store = RunStore(tmp_path / "src")
+    store = backend(tmp_path / "src")
     for ok, url, org, sha in specs:
         rec = make(store, ok=ok)
         rec.request.url, rec.request.sha256 = url, sha
@@ -192,9 +192,9 @@ def test_open_reads_only_the_index(tmp_path, monkeypatch):
     a, b = "http://a/v1/messages", "http://b/v1/messages"
     run = _fake_run(tmp_path, [(True, a, None, "h"), (True, b, None, "h"), (True, a, None, "h")])
     reads = []
-    real = RunStore.load_meta
+    real = FileStore.load_meta
     monkeypatch.setattr(
-        RunStore, "load_meta", lambda self, cid: reads.append(cid) or real(self, cid)
+        FileStore, "load_meta", lambda self, cid: reads.append(cid) or real(self, cid)
     )
     cache = ReplayCache(run)
     assert reads == []  # no meta.json is read on open
@@ -206,7 +206,8 @@ def test_open_reads_only_the_index(tmp_path, monkeypatch):
     assert got is not None and got.id == "c_000001" and len(reads) == 2
 
 
-def test_lazy_lookup_matches_eager_snapshot(tmp_path):
+@pytest.mark.parametrize("backend", [FileStore, SqliteStore])
+def test_lazy_lookup_matches_eager_snapshot(tmp_path, backend):
     """Compare against an eager table built by reading meta.json one by one; URL, org header, success/failure, and hash are randomly mixed."""
     rng = random.Random(7)
     urls, orgs, shas = (
@@ -218,7 +219,7 @@ def test_lazy_lookup_matches_eager_snapshot(tmp_path):
         (rng.random() > 0.2, rng.choice(urls), rng.choice(orgs), rng.choice(shas))
         for _ in range(60)
     ]
-    run = _fake_run(tmp_path, specs)
+    run = _fake_run(tmp_path, specs, backend)
     eager: dict[str, deque[str]] = defaultdict(deque)
     for n, (ok, url, org, sha) in enumerate(specs, 1):
         if ok:
@@ -262,3 +263,54 @@ def test_record_taken_by_another_thread_meanwhile(tmp_path, monkeypatch):
     assert inner[0] is not None and outer is not None
     assert (inner[0].id, outer.id) == ("c_000001", "c_000002")
     assert cache.take(url, {}, "h") is None
+
+
+def test_sqlite_source_never_reads_meta(tmp_path, monkeypatch):
+    url = "http://gw/v1/messages"
+    run = _fake_run(
+        tmp_path,
+        [(True, url, None, "h"), (False, url, None, "h"), (True, url, None, "h")],
+        SqliteStore,
+    )
+
+    def no_meta(self, call_id):
+        raise AssertionError("SQLite replay must use the index, not meta.json")
+
+    monkeypatch.setattr(SqliteStore, "load_meta", no_meta)
+    cache = ReplayCache(run)
+    got = [cache.take(url, {}, "h") for _ in range(3)]
+    assert [g.id if g else None for g in got] == ["c_000001", "c_000003", None]
+    assert cache.take("http://other/v1/messages", {}, "h") is None
+
+
+def test_sqlite_source_snapshot_and_threads(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+
+    from tests.unit.test_store import make
+
+    url = "http://gw/v1/messages"
+    run = _fake_run(tmp_path, [(True, url, None, "h")] * 20, SqliteStore)
+    cache = ReplayCache(run)
+    store = SqliteStore(run)
+    late = make(store)
+    late.request.url, late.request.sha256, late.request.headers = url, "h", {}
+    store.write(late, [])  # records written after the snapshot are not replayed
+    with ThreadPoolExecutor(8) as pool:
+        got = list(pool.map(lambda _: cache.take(url, {}, "h"), range(30)))
+    ids = [g.id for g in got if g]
+    assert len(ids) == 20 and len(set(ids)) == 20 and late.id not in ids
+
+
+@pytest.mark.parametrize("backend", [FileStore, SqliteStore])
+def test_candidates_ordered_by_call_number(tmp_path, backend):
+    """Call numbers longer than 6 digits are ordered numerically, not as strings (c_999999 comes before c_1000000)."""
+    from tests.unit.test_store import make
+
+    url = "http://gw/v1/messages"
+    store = backend(tmp_path / "src")
+    for cid in ("c_1000000", "c_999999"):
+        rec = make(store)
+        rec.id, rec.request.url, rec.request.sha256, rec.request.headers = cid, url, "h", {}
+        store.write(rec, [])
+    cache = ReplayCache(store.dir)
+    assert [cache.take(url, {}, "h").id for _ in range(2)] == ["c_999999", "c_1000000"]

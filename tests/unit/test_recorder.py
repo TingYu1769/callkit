@@ -5,7 +5,7 @@ import json
 import pytest
 
 from callkit.recorder import Exchange, Recorder, recorded_api
-from tests.fakes import DATA
+from tests.fakes import DATA, has_stored
 
 CHAT_BODY = {
     "model": "gpt-5.6-sol",
@@ -47,10 +47,10 @@ def test_records_json_and_stream(tmp_path):
     assert rec is not None and rec.source == "sdk" and rec.outcome.ok
     assert rec.api == "openai.chat_completions" and rec.usage and rec.usage.input_tokens == 139
     assert rec.request.headers["Authorization"] == "<redacted>"
-    assert (r.store.calls / rec.id / "response.body").exists()
+    assert r.store.read_file(rec.id, "response.body")
     rec = r.record(chat_exchange(stream=True), source="proxy")
     assert rec is not None and rec.outcome.ok and rec.outcome.stop_reason == "tool_calls"
-    assert (r.store.calls / rec.id / "response.sse").exists()
+    assert r.store.read_file(rec.id, "response.sse")
     assert r.record(chat_exchange(url="https://gw/v1/embeddings"), source="sdk") is None
     assert [row.id for row in r.store.index()] == ["c_000001", "c_000002"]
 
@@ -129,10 +129,7 @@ def test_relative_run_dir_survives_chdir(tmp_path, monkeypatch):
     r = Recorder("runs/E1")
     monkeypatch.chdir(tmp_path / "b")
     rec = r.record(chat_exchange(), source="sdk")
-    assert (
-        rec is not None
-        and (tmp_path / "a" / "runs" / "E1" / "calls" / rec.id / "meta.json").exists()
-    )
+    assert rec is not None and has_stored(tmp_path / "a" / "runs" / "E1", rec.id, "meta.json")
     assert not (tmp_path / "b" / "runs").exists()
 
 

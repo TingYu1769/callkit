@@ -17,7 +17,7 @@ from callkit.recorder import Recorder
 from callkit.sdk import _Tap
 from callkit.sse import parse
 from callkit.store import RunStore
-from tests.fakes import DATA
+from tests.fakes import DATA, has_stored, stored
 
 CHAT_JSON = (DATA / "chat_tool_calls.json").read_bytes()
 CHAT_SSE = (DATA / "chat_text.sse").read_bytes()
@@ -101,7 +101,7 @@ def test_openai_stream_recorded_with_timing(tmp_path):
     assert (
         rec.outcome.ok and rec.message and rec.message["choices"][0]["message"]["content"] == text
     )
-    assert (tmp_path / "run" / "calls" / rec.id / "response.sse").read_bytes() == CHAT_SSE
+    assert stored(tmp_path / "run", rec.id, "response.sse") == CHAT_SSE
     assert rec.timing.first_byte_ms is not None
 
 
@@ -228,7 +228,7 @@ def test_async_openai_stream_and_json(tmp_path, mod):
     asyncio.run(main())
     recs = records(tmp_path / "run")
     assert [r.outcome.ok for r in recs] == [True, True] and all(r.source == "sdk" for r in recs)
-    assert (tmp_path / "run" / "calls" / recs[0].id / "response.sse").exists()
+    assert has_stored(tmp_path / "run", recs[0].id, "response.sse")
 
 
 def test_shared_recorder_no_id_clash(tmp_path):
@@ -415,7 +415,7 @@ def test_sdk_records_cost(tmp_path):
         rec.usage and rec.cost_usd == cost_usd(rec.usage, PRICE["gpt-5.6-sol"]) and rec.cost_usd > 0
     )
     assert rec.attempts[0].cost_usd == rec.cost_usd
-    assert json.loads((tmp_path / "run" / "prices.json").read_text())["gpt-5.6-sol"]["output"] == 10
+    assert RunStore(tmp_path / "run").merge_prices({})["gpt-5.6-sol"].output == 10
 
 
 @pytest.mark.parametrize("stream", [False, True])

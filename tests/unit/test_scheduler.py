@@ -20,7 +20,7 @@ from callkit import (
     transport,
 )
 from callkit.errors import CallkitError, CapReached
-from callkit.store import RunStore
+from callkit.store import RunStore, is_run_dir
 from tests.fakes import DATA, Server, good_stream, sse_response
 
 CHAT = (DATA / "chat_tool_calls.json").read_bytes()
@@ -32,8 +32,7 @@ def reply(request):
 
 
 def ledger(run):
-    path = run / "items.jsonl"
-    return [json.loads(x) for x in path.read_text().splitlines()] if path.exists() else []
+    return RunStore(run, create=False).items() if is_run_dir(run) else []
 
 
 def test_values_resume_and_errors(tmp_path):

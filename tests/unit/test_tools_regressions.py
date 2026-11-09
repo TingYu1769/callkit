@@ -28,7 +28,7 @@ from callkit.client import _total_cost
 from callkit.context import CURRENT_ITEM, ItemContext
 from callkit.record import Attempt, Outcome, Usage
 from callkit.recorder import Recorder
-from callkit.store import RunStore
+from callkit.store import FileStore, RunStore
 from tests.fakes import DATA, Server, good_stream, sse_response
 
 CHAT_JSON = (DATA / "chat_tool_calls.json").read_bytes()
@@ -159,12 +159,12 @@ def test_usage_missing_flag_without_price_and_on_sdk_replay(server, tmp_path):
 
 
 def test_async_scheduler_error_surfaces(tmp_path, monkeypatch):
-    import callkit.scheduler as sched
+    from callkit.store import SqliteStore
 
-    def broken(path, obj):
+    def broken(self, line):
         raise OSError("磁盘满了")
 
-    monkeypatch.setattr(sched, "append_line", broken)
+    monkeypatch.setattr(SqliteStore, "append_item", broken)
 
     async def fn(x):
         return x
@@ -195,15 +195,14 @@ def test_cancel_inside_fn_is_item_failure(tmp_path):
 
 
 def test_ledger_unicode(tmp_path):
-    from callkit.scheduler import _done
-
+    store = FileStore(tmp_path)
     ledger = tmp_path / "items.jsonl"
     good = json.dumps({"item_id": "a\u2028b", "repeat": 0, "ok": True}, ensure_ascii=False).encode()
     half = json.dumps({"item_id": "中", "repeat": 0, "ok": True}, ensure_ascii=False).encode()[:-5]
     # The last line was written halfway, splitting a Chinese character.
     ledger.write_bytes(good + b"\n" + half[:-1])
     with pytest.warns(RuntimeWarning, match="unreadable line"):
-        assert _done(ledger) == {("a\u2028b", 0)}
+        assert store.items_done() == {("a\u2028b", 0)}
 
 
 def test_explicit_same_item_id_collects_call_ids(server, tmp_path):
@@ -289,6 +288,7 @@ def test_cross_run_fork_keeps_tree(server, tmp_path):
 def test_cli_survives_bad_records(server, tmp_path, capsys):
     server.replies += [sse_response(good_stream()) for _ in range(3)]
     run = tmp_path / "run"
+    FileStore(run)  # Old layout: delete or edit files directly to create bad records.
     with Client(Endpoint("gw", "http://gw", "CALLKIT_TEST_KEY"), run) as c:
         c.call({"model": "m", "max_tokens": 1, "messages": MSGS})
         c.call(b'{"model": "m", "stream": true, "messages": "not a list", "tools": [1, "x"]}')
@@ -359,3 +359,26 @@ def test_long_chain_prints_without_recursion(capsys):
     (root,) = browse.tree(rows)[None]
     _print_children(root, {r.id: r.id for r in rows}, "")
     assert capsys.readouterr().out.count("\n") == 1499
+
+
+def test_cli_survives_bad_records_on_sqlite(server, tmp_path, capsys):
+    import sqlite3
+
+    server.replies += [sse_response(good_stream()) for _ in range(2)]
+    run = tmp_path / "run"
+    with Client(Endpoint("gw", "http://gw", "CALLKIT_TEST_KEY"), run) as c:
+        c.call({"model": "m", "max_tokens": 1, "messages": MSGS})
+        c.call({"model": "m", "max_tokens": 1, "messages": MSGS})
+    db = sqlite3.connect(run / "run.db")
+    db.execute("DELETE FROM blobs WHERE call_seq = 2 AND name = 'meta.json'")
+    db.commit()
+    db.close()
+    # ls reads only the summary, so it lists the record even if a large field is broken
+    assert main(["ls", str(run)]) == 0
+    assert "c_000002" in capsys.readouterr().out
+    with pytest.raises(SystemExit, match="cannot read c_000002"):
+        main(["show", str(run), "c_000002"])
+    out = tmp_path / "x.jsonl"
+    with pytest.warns(RuntimeWarning, match="unreadable record c_000002"):
+        assert main(["export", str(run), "-o", str(out)]) == 0
+    assert [json.loads(x)["id"] for x in out.read_text().splitlines()] == ["c_000001"]
